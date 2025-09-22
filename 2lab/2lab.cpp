@@ -3,20 +3,19 @@
 using namespace std;
 
 class EquilateralTriangle {
-private: // Все поля приватные
-    double side; // Длина стороны
+private:
+    double side;
 
 public:
-    // Конструктор
     EquilateralTriangle(double s) : side(s) {}
 
-    // Методы вычислений
-    double calculatePerimeter() const {
-        return 3 * side;
+    // Метод расчета площади (будет перегружен в наследнике)
+    virtual double calculateArea() const {
+        return (sqrt(3) / 4) * side * side;
     }
 
-    double calculateArea() const {
-        return (sqrt(3) / 4) * side * side;
+    double calculatePerimeter() const {
+        return 3 * side;
     }
 
     double calculateHeight() const {
@@ -28,7 +27,7 @@ public:
         return side;
     }
 
-    // Метод для вывода информации
+    // Виртуальный метод для вывода информации (будет перегружен)
     virtual void printInfo() const {
         cout << "Равносторонний треугольник:" << endl;
         cout << "  Сторона: " << side << endl;
@@ -38,39 +37,37 @@ public:
         cout << "----------------------------" << endl;
     }
 
-    // Геттер для площади
-    double getArea() const {
-        return calculateArea();
-    }
-
-    // Виртуальный деструктор
     virtual ~EquilateralTriangle() {}
 };
 
 class TriangularPrism : public EquilateralTriangle {
-private: // Все поля приватные
-    double height; // Высота призмы
+private:
+    double height;
 
 public:
-    // Конструктор
     TriangularPrism(double s, double h) : EquilateralTriangle(s), height(h) {}
 
-    // Метод вычисления объема
+    // ПЕРЕГРУЗКА метода расчета площади
+    // Теперь считает полную площадь поверхности призмы
+    double calculateArea() const override {
+        // Полная площадь = 2 * площадь основания + площадь боковой поверхности
+        double baseArea = EquilateralTriangle::calculateArea(); // площадь треугольника
+        double lateralArea = calculatePerimeter() * height;     // периметр * высоту
+        return 2 * baseArea + lateralArea;
+    }
+
+    // Новый метод - объем призмы
     double calculateVolume() const {
-        return getArea() * height; // Используем публичный метод родителя
+        return EquilateralTriangle::calculateArea() * height;
     }
 
-    // Геттер для высоты
-    double getHeight() const {
-        return height;
-    }
-
-    // Переопределенный метод для вывода информации
+    // ПЕРЕГРУЗКА метода вывода информации
     void printInfo() const override {
         cout << "Правильная треугольная призма:" << endl;
-        cout << "  Сторона основания: " << getSide() << endl; // Используем геттер
+        cout << "  Сторона основания: " << getSide() << endl;
         cout << "  Высота призмы: " << height << endl;
-        cout << "  Площадь основания: " << getArea() << endl; // Используем геттер
+        cout << "  Площадь основания: " << EquilateralTriangle::calculateArea() << endl;
+        cout << "  Полная площадь: " << calculateArea() << endl; // перегруженный метод
         cout << "  Объем: " << calculateVolume() << endl;
         cout << "----------------------------" << endl;
     }
@@ -79,13 +76,16 @@ public:
     double getVolume() const {
         return calculateVolume();
     }
+
+    // Геттер для высоты
+    double getHeight() const {
+        return height;
+    }
 };
 
 int main() {
-    // setlocale(LC_ALL, "Russian"); // Для кириллицы в Windows
-
-    const int N = 4; // Количество треугольников
-    const int M = 3; // Количество призм
+    const int N = 3;
+    const int M = 2;
 
     // Создаем массивы объектов
     EquilateralTriangle* triangles[N];
@@ -94,41 +94,45 @@ int main() {
     // Инициализируем треугольники
     triangles[0] = new EquilateralTriangle(5.0);
     triangles[1] = new EquilateralTriangle(3.0);
-    triangles[2] = new EquilateralTriangle(7.0);
-    triangles[3] = new EquilateralTriangle(4.0);
+    triangles[2] = new EquilateralTriangle(4.0);
 
     // Инициализируем призмы
-    prisms[0] = new TriangularPrism(3.0, 10.0);
-    prisms[1] = new TriangularPrism(5.0, 6.0);
-    prisms[2] = new TriangularPrism(4.0, 15.0);
+    prisms[0] = new TriangularPrism(3.0, 8.0);
+    prisms[1] = new TriangularPrism(4.0, 12.0);
 
-    // Выводим всю информацию для наглядности
-    cout << "*** ВСЕ ТРЕУГОЛЬНИКИ ***" << endl;
-    for (int i = 0; i < N; i++) {
-        triangles[i]->printInfo();
+    // Демонстрация полиморфизма через массив указателей на базовый класс
+    EquilateralTriangle* figures[5];
+    figures[0] = new EquilateralTriangle(6.0);
+    figures[1] = new TriangularPrism(5.0, 10.0); // Призма, но через указатель на треугольник!
+    figures[2] = new EquilateralTriangle(7.0);
+    figures[3] = new TriangularPrism(2.0, 6.0);  // Еще призма
+    figures[4] = new EquilateralTriangle(3.0);
+
+    cout << "=== ДЕМОНСТРАЦИЯ ПОЛИМОРФИЗМА ===" << endl;
+    cout << "Вызов перегруженных методов через указатели на базовый класс:" << endl;
+    for (int i = 0; i < 5; i++) {
+        figures[i]->printInfo(); // Для призм вызовется перегруженная версия!
     }
 
-    cout << "*** ВСЕ ПРИЗМЫ ***" << endl;
-    for (int i = 0; i < M; i++) {
-        prisms[i]->printInfo();
-    }
-
-    // 1. Находим среднюю площадь треугольников
+    // Расчеты по заданию
+    cout << "=== РЕЗУЛЬТАТЫ РАСЧЕТОВ ===" << endl;
+    
+    // 1. Средняя площадь треугольников (только обычных треугольников)
     double totalTriangleArea = 0;
     for (int i = 0; i < N; i++) {
-        totalTriangleArea += triangles[i]->getArea();
+        totalTriangleArea += triangles[i]->calculateArea();
     }
     double averageTriangleArea = totalTriangleArea / N;
 
-    // 2. Считаем количество треугольников с площадью меньше средней
+    // 2. Количество треугольников с площадью меньше средней
     int countLessThanAverage = 0;
     for (int i = 0; i < N; i++) {
-        if (triangles[i]->getArea() < averageTriangleArea) {
+        if (triangles[i]->calculateArea() < averageTriangleArea) {
             countLessThanAverage++;
         }
     }
 
-    // 3. Находим призму с максимальным объемом
+    // 3. Призма с максимальным объемом
     int maxVolumeIndex = 0;
     double maxVolume = prisms[0]->getVolume();
     for (int i = 1; i < M; i++) {
@@ -138,20 +142,25 @@ int main() {
         }
     }
 
-    // Выводим результаты расчетов
-    cout << "РЕЗУЛЬТАТЫ РАСЧЕТОВ:" << endl;
+    // Вывод результатов
     cout << "Средняя площадь треугольников: " << averageTriangleArea << endl;
     cout << "Количество треугольников с площадью меньше средней: " << countLessThanAverage << endl;
     cout << "Призма с наибольшим объемом:" << endl;
     prisms[maxVolumeIndex]->printInfo();
 
-    // Освобождаем память
-    for (int i = 0; i < N; i++) {
-        delete triangles[i];
-    }
-    for (int i = 0; i < M; i++) {
-        delete prisms[i];
-    }
+    // Дополнительно: покажем разницу в расчете площади
+    cout << "=== СРАВНЕНИЕ ПЕРЕГРУЖЕННЫХ МЕТОДОВ ===" << endl;
+    EquilateralTriangle triangle(4.0);
+    TriangularPrism prism(4.0, 10.0);
+    
+    cout << "Площадь треугольника: " << triangle.calculateArea() << endl;
+    cout << "Полная площадь призмы: " << prism.calculateArea() << endl;
+    cout << "Площадь основания призмы: " << prism.EquilateralTriangle::calculateArea() << endl;
+
+    // Освобождение памяти
+    for (int i = 0; i < N; i++) delete triangles[i];
+    for (int i = 0; i < M; i++) delete prisms[i];
+    for (int i = 0; i < 5; i++) delete figures[i];
 
     return 0;
 }
