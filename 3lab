@@ -1,56 +1,262 @@
-lab3
-Для варианта 10 нужно создать двоичный файл с информацией о продаже путевок туристической фирмой, добавив поле «Среднее количество проданных путевок».
+Ошибка free(): invalid pointer обычно возникает из-за проблем с памятью при работе со строками (std::string) в бинарных файлах. Проблема в том, что std::string содержит указатели на динамическую память, и при прямой записи/чтении через write()/read() эти указатели копируются некорректно.
 
-Вот полное решение на C++:
+Вот исправленное решение:
 
----
-
-1. Создание текстового файла tours.txt
-
-Сначала создадим текстовый файл с исходными данными. Например:
-
-```
-2
-Греция
-546
-75 120 150 158 160 130
-Турция
-700
-100 110 130 140 150 120
-```
-
----
-
-2. Класс Tour для хранения данных
+1. Исправленный класс Tour
 
 ```cpp
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <vector>
+#include <cstring>
 
 using namespace std;
 
 class Tour {
-public:
-    string country;
+private:
+    static const int COUNTRY_LENGTH = 50;
+    static const int MONTHS_COUNT = 6;
+    
+    char country[COUNTRY_LENGTH];
     double price;
-    int sales[6]; // апрель, май, июнь, июль, август, сентябрь
-    double avgSales; // среднее количество проданных путевок
+    int sales[MONTHS_COUNT];
+    double avgSales;
 
+public:
+    // Конструктор по умолчанию
+    Tour() {
+        strcpy(country, "");
+        price = 0;
+        for (int i = 0; i < MONTHS_COUNT; i++) {
+            sales[i] = 0;
+        }
+        avgSales = 0;
+    }
+    
+    // Конструктор с параметрами
+    Tour(const string& c, double p, const int s[]) {
+        setCountry(c);
+        price = p;
+        for (int i = 0; i < MONTHS_COUNT; i++) {
+            sales[i] = s[i];
+        }
+        calculateAvg();
+    }
+    
+    // Сеттер для страны
+    void setCountry(const string& c) {
+        strncpy(country, c.c_str(), COUNTRY_LENGTH - 1);
+        country[COUNTRY_LENGTH - 1] = '\0';
+    }
+    
+    // Геттер для страны
+    string getCountry() const {
+        return string(country);
+    }
+    
     void calculateAvg() {
         int sum = 0;
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < MONTHS_COUNT; i++) {
             sum += sales[i];
         }
-        avgSales = sum / 6.0;
+        avgSales = static_cast<double>(sum) / MONTHS_COUNT;
     }
-
-    void display() {
+    
+    void display() const {
         cout << "Страна: " << country << endl;
         cout << "Цена: " << price << " долл." << endl;
         cout << "Продажи по месяцам: ";
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < MONTHS_COUNT; i++) {
+            cout << sales[i] << " ";
+        }
+        cout << endl;
+        cout << "Среднее количество проданных путевок: " << avgSales << endl;
+        cout << "----------------------------------------" << endl;
+    }
+    
+    // Методы для доступа к данным
+    double getPrice() const { return price; }
+    const int* getSales() const { return sales; }
+    double getAvgSales() const { return avgSales; }
+    
+    // Методы для установки данных
+    void setPrice(double p) { price = p; }
+    void setSales(const int s[]) {
+        for (int i = 0; i < MONTHS_COUNT; i++) {
+            sales[i] = s[i];
+        }
+        calculateAvg();
+    }
+};
+```
+
+2. Программа для записи в бинарный файл
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+int main() {
+    // Создаем текстовый файл для примера
+    ofstream createText("tours.txt");
+    createText << "2\n";
+    createText << "Греция\n";
+    createText << "546\n";
+    createText << "75 120 150 158 160 130\n";
+    createText << "Турция\n";
+    createText << "700\n";
+    createText << "100 110 130 140 150 120\n";
+    createText.close();
+    
+    // Чтение из текстового файла и запись в бинарный
+    ifstream inText("tours.txt");
+    ofstream outBin("tours.dat", ios::binary);
+
+    if (!inText) {
+        cout << "Ошибка открытия текстового файла!" << endl;
+        return 1;
+    }
+
+    if (!outBin) {
+        cout << "Ошибка создания бинарного файла!" << endl;
+        return 1;
+    }
+
+    int n;
+    inText >> n;
+    cout << "Количество записей: " << n << endl;
+
+    for (int i = 0; i < n; i++) {
+        Tour t;
+        string country;
+        double price;
+        int sales[6];
+        
+        inText.ignore(); // очищаем буфер
+        getline(inText, country);
+        inText >> price;
+        for (int j = 0; j < 6; j++) {
+            inText >> sales[j];
+        }
+        
+        t.setCountry(country);
+        t.setPrice(price);
+        t.setSales(sales);
+        
+        // Запись объекта в бинарный файл
+        outBin.write(reinterpret_cast<const char*>(&t), sizeof(Tour));
+        
+        cout << "Записана запись: " << country << endl;
+    }
+
+    inText.close();
+    outBin.close();
+
+    cout << "Данные успешно записаны в бинарный файл 'tours.dat'." << endl;
+    return 0;
+}
+```
+
+3. Программа для чтения из бинарного файла
+
+```cpp
+#include <iostream>
+#include <fstream>
+
+using namespace std;
+
+int main() {
+    ifstream inBin("tours.dat", ios::binary);
+    if (!inBin) {
+        cout << "Ошибка открытия бинарного файла!" << endl;
+        return 1;
+    }
+
+    cout << "=== ЧТЕНИЕ ИЗ БИНАРНОГО ФАЙЛА ===" << endl;
+    
+    Tour t;
+    int recordCount = 0;
+    
+    // Чтение записей до конца файла
+    while (inBin.read(reinterpret_cast<char*>(&t), sizeof(Tour))) {
+        recordCount++;
+        cout << "Запись #" << recordCount << ":" << endl;
+        t.display();
+    }
+
+    inBin.close();
+    
+    cout << "Всего прочитано записей: " << recordCount << endl;
+    return 0;
+}
+```
+
+4. Упрощенная версия (все в одном файле)
+
+Если хотите все в одном файле:
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <cstring>
+
+using namespace std;
+
+class Tour {
+private:
+    static const int COUNTRY_LENGTH = 50;
+    static const int MONTHS_COUNT = 6;
+    
+    char country[COUNTRY_LENGTH];
+    double price;
+    int sales[MONTHS_COUNT];
+    double avgSales;
+
+public:
+    Tour() {
+        strcpy(country, "");
+        price = 0;
+        for (int i = 0; i < MONTHS_COUNT; i++) {
+            sales[i] = 0;
+        }
+        avgSales = 0;
+    }
+    
+    void setCountry(const string& c) {
+        strncpy(country, c.c_str(), COUNTRY_LENGTH - 1);
+        country[COUNTRY_LENGTH - 1] = '\0';
+    }
+    
+    string getCountry() const {
+        return string(country);
+    }
+    
+    void setPrice(double p) { price = p; }
+    void setSales(const int s[]) {
+        for (int i = 0; i < MONTHS_COUNT; i++) {
+            sales[i] = s[i];
+        }
+        calculateAvg();
+    }
+    
+    void calculateAvg() {
+        int sum = 0;
+        for (int i = 0; i < MONTHS_COUNT; i++) {
+            sum += sales[i];
+        }
+        avgSales = static_cast<double>(sum) / MONTHS_COUNT;
+    }
+    
+    void display() const {
+        cout << "Страна: " << country << endl;
+        cout << "Цена: " << price << " долл." << endl;
+        cout << "Продажи по месяцам: ";
+        for (int i = 0; i < MONTHS_COUNT; i++) {
             cout << sales[i] << " ";
         }
         cout << endl;
@@ -58,21 +264,14 @@ public:
         cout << "----------------------------------------" << endl;
     }
 };
-```
 
----
-
-3. Программа для записи из текстового файла в бинарный
-
-```cpp
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include "Tour.h" // если класс в отдельном файле
-
-using namespace std;
-
-int main() {
+// Функция для создания бинарного файла
+void createBinaryFile() {
+    // Создаем тестовый текстовый файл
+    ofstream createText("tours.txt");
+    createText << "2\nГреция\n546\n75 120 150 158 160 130\nТурция\n700\n100 110 130 140 150 120\n";
+    createText.close();
+    
     ifstream inText("tours.txt");
     ofstream outBin("tours.dat", ios::binary);
 
@@ -81,73 +280,54 @@ int main() {
 
     for (int i = 0; i < n; i++) {
         Tour t;
+        string country;
+        double price;
+        int sales[6];
+        
         inText.ignore();
-        getline(inText, t.country);
-        inText >> t.price;
+        getline(inText, country);
+        inText >> price;
         for (int j = 0; j < 6; j++) {
-            inText >> t.sales[j];
+            inText >> sales[j];
         }
-        t.calculateAvg();
-
-        // Запись объекта в бинарный файл
-        outBin.write((char*)&t, sizeof(Tour));
+        
+        t.setCountry(country);
+        t.setPrice(price);
+        t.setSales(sales);
+        
+        outBin.write(reinterpret_cast<const char*>(&t), sizeof(Tour));
     }
 
     inText.close();
     outBin.close();
-
-    cout << "Данные записаны в бинарный файл." << endl;
-    return 0;
+    cout << "Бинарный файл создан успешно!" << endl;
 }
-```
 
----
-
-4. Программа для чтения из бинарного файла и вывода на экран
-
-```cpp
-#include <iostream>
-#include <fstream>
-#include "Tour.h"
-
-using namespace std;
-
-int main() {
+// Функция для чтения бинарного файла
+void readBinaryFile() {
     ifstream inBin("tours.dat", ios::binary);
-    if (!inBin) {
-        cout << "Ошибка открытия файла!" << endl;
-        return 1;
-    }
-
+    
     Tour t;
-    while (inBin.read((char*)&t, sizeof(Tour))) {
+    cout << "=== ДАННЫЕ ИЗ БИНАРНОГО ФАЙЛА ===" << endl;
+    while (inBin.read(reinterpret_cast<char*>(&t), sizeof(Tour))) {
         t.display();
     }
-
+    
     inBin.close();
+}
+
+int main() {
+    createBinaryFile();
+    readBinaryFile();
     return 0;
 }
 ```
 
----
+Основные изменения:
 
-5. Результат работы
+1. Заменил std::string на char[] - для безопасной бинарной сериализации
+2. Добавил проверки ошибок при открытии файлов
+3. Использовал reinterpret_cast для преобразования указателей
+4. Добавил методы set/get для безопасного доступа к данным
 
-После запуска второй программы на экран будет выведено:
-
-```
-Страна: Греция
-Цена: 546 долл.
-Продажи по месяцам: 75 120 150 158 160 130
-Среднее количество проданных путевок: 132.167
-----------------------------------------
-Страна: Турция
-Цена: 700 долл.
-Продажи по месяцам: 100 110 130 140 150 120
-Среднее количество проданных путевок: 125
-----------------------------------------
-```
-
----
-
-Если нужно, чтобы класс был в одном файле с программами, просто объедините все в один .cpp файл без заголовочного.
+Теперь программа должна работать без ошибок памяти!
