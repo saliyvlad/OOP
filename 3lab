@@ -1,0 +1,153 @@
+lab3
+Для варианта 10 нужно создать двоичный файл с информацией о продаже путевок туристической фирмой, добавив поле «Среднее количество проданных путевок».
+
+Вот полное решение на C++:
+
+---
+
+1. Создание текстового файла tours.txt
+
+Сначала создадим текстовый файл с исходными данными. Например:
+
+```
+2
+Греция
+546
+75 120 150 158 160 130
+Турция
+700
+100 110 130 140 150 120
+```
+
+---
+
+2. Класс Tour для хранения данных
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class Tour {
+public:
+    string country;
+    double price;
+    int sales[6]; // апрель, май, июнь, июль, август, сентябрь
+    double avgSales; // среднее количество проданных путевок
+
+    void calculateAvg() {
+        int sum = 0;
+        for (int i = 0; i < 6; i++) {
+            sum += sales[i];
+        }
+        avgSales = sum / 6.0;
+    }
+
+    void display() {
+        cout << "Страна: " << country << endl;
+        cout << "Цена: " << price << " долл." << endl;
+        cout << "Продажи по месяцам: ";
+        for (int i = 0; i < 6; i++) {
+            cout << sales[i] << " ";
+        }
+        cout << endl;
+        cout << "Среднее количество проданных путевок: " << avgSales << endl;
+        cout << "----------------------------------------" << endl;
+    }
+};
+```
+
+---
+
+3. Программа для записи из текстового файла в бинарный
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include "Tour.h" // если класс в отдельном файле
+
+using namespace std;
+
+int main() {
+    ifstream inText("tours.txt");
+    ofstream outBin("tours.dat", ios::binary);
+
+    int n;
+    inText >> n;
+
+    for (int i = 0; i < n; i++) {
+        Tour t;
+        inText.ignore();
+        getline(inText, t.country);
+        inText >> t.price;
+        for (int j = 0; j < 6; j++) {
+            inText >> t.sales[j];
+        }
+        t.calculateAvg();
+
+        // Запись объекта в бинарный файл
+        outBin.write((char*)&t, sizeof(Tour));
+    }
+
+    inText.close();
+    outBin.close();
+
+    cout << "Данные записаны в бинарный файл." << endl;
+    return 0;
+}
+```
+
+---
+
+4. Программа для чтения из бинарного файла и вывода на экран
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include "Tour.h"
+
+using namespace std;
+
+int main() {
+    ifstream inBin("tours.dat", ios::binary);
+    if (!inBin) {
+        cout << "Ошибка открытия файла!" << endl;
+        return 1;
+    }
+
+    Tour t;
+    while (inBin.read((char*)&t, sizeof(Tour))) {
+        t.display();
+    }
+
+    inBin.close();
+    return 0;
+}
+```
+
+---
+
+5. Результат работы
+
+После запуска второй программы на экран будет выведено:
+
+```
+Страна: Греция
+Цена: 546 долл.
+Продажи по месяцам: 75 120 150 158 160 130
+Среднее количество проданных путевок: 132.167
+----------------------------------------
+Страна: Турция
+Цена: 700 долл.
+Продажи по месяцам: 100 110 130 140 150 120
+Среднее количество проданных путевок: 125
+----------------------------------------
+```
+
+---
+
+Если нужно, чтобы класс был в одном файле с программами, просто объедините все в один .cpp файл без заголовочного.
