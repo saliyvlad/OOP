@@ -1,272 +1,63 @@
-Я вижу, что это задачи на работу с классами, файлами и контейнерами в C++. Давайте решим их по порядку.
-https://drive.google.com/drive/folders/1jhrr7b8UFwwqqgJ1Q83DDAOwOKd298uc?usp=sharing
-Задача 3
+````timescale 1ns/100ps
 
-```cpp
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <list>
-#include <vector>
+module testbench_multi;
 
-using namespace std;
+logic A1, A2, A3;
+logic B1, B2, B3;
+logic C_IN;
 
-// Класс Аэропорт (предполагаемая структура из файла APOpr)
-class Airport {
-private:
-    string name;
-    string city;
-    string status; // "международный" или "внутренний"
-    int capacity;
-    
-public:
-    // Конструкторы
-    Airport() : name(""), city(""), status(""), capacity(0) {}
-    Airport(string n, string c, string s, int cap) : name(n), city(c), status(s), capacity(cap) {}
-    
-    // Методы доступа
-    string getStatus() const { return status; }
-    string getName() const { return name; }
-    string getCity() const { return city; }
-    int getCapacity() const { return capacity; }
-    
-    // Метод для вывода информации
-    void display() const {
-        cout << "Аэропорт: " << name << ", Город: " << city 
-             << ", Статус: " << status << ", Вместимость: " << capacity << endl;
-    }
-    
-    // Метод для чтения из файла
-    friend istream& operator>>(istream& is, Airport& airport) {
-        getline(is, airport.name);
-        getline(is, airport.city);
-        getline(is, airport.status);
-        is >> airport.capacity;
-        is.ignore(); // игнорируем символ новой строки
-        return is;
-    }
-};
+logic SUM1, SUM2, SUM3;
+logic C_OUT;
 
-// Основная программа для задачи 3
-void task3() {
-    int N;
-    cout << "Введите количество объектов N: ";
-    cin >> N;
-    cin.ignore(); // очищаем буфер после ввода числа
-    
-    vector<Airport> airports;
-    list<Airport> internationalAirports;
-    
-    // Чтение данных из файла
-    ifstream inputFile("порт.txt");
-    if (!inputFile) {
-        cout << "Ошибка открытия файла порт.txt!" << endl;
-        return;
-    }
-    
-    // Чтение N объектов из файла
-    for (int i = 0; i < N; i++) {
-        Airport airport;
-        inputFile >> airport;
-        airports.push_back(airport);
-        
-        // Если аэропорт международный, добавляем в list
-        if (airport.getStatus() == "международный") {
-            internationalAirports.push_back(airport);
-        }
-    }
-    
-    inputFile.close();
-    
-    // Вывод результатов
-    cout << "\nВсе аэропорты:" << endl;
-    for (const auto& airport : airports) {
-        airport.display();
-    }
-    
-    cout << "\nМеждународные аэропорты (контейнер list):" << endl;
-    for (const auto& airport : internationalAirports) {
-        airport.display();
-    }
-    
-    cout << "\nКоличество международных аэропортов: " << internationalAirports.size() << endl;
-}
+multi_adder m1(
+    A1, A2, A3,
+    B1, B2, B3,
+    C_IN,
+    SUM1, SUM2, SUM3,
+    C_OUT
+);
+
+initial
+begin
+
+    // 000 + 000
+    A1=0; A2=0; A3=0;
+    B1=0; B2=0; B3=0;
+    C_IN=0;
+    #10;
+    if (SUM1!=0 || SUM2!=0 || SUM3!=0 || C_OUT!=0) $stop;
+
+    // 001 + 001 = 010
+    A1=1; A2=0; A3=0;
+    B1=1; B2=0; B3=0;
+    C_IN=0;
+    #10;
+    if (SUM1!=0 || SUM2!=1 || SUM3!=0 || C_OUT!=0) $stop;
+
+    // 011 + 001 = 100
+    A1=1; A2=1; A3=0;
+    B1=1; B2=0; B3=0;
+    C_IN=0;
+    #10;
+    if (SUM1!=0 || SUM2!=0 || SUM3!=1 || C_OUT!=0) $stop;
+
+    // 111 + 001 = 1000
+    A1=1; A2=1; A3=1;
+    B1=1; B2=0; B3=0;
+    C_IN=0;
+    #10;
+    if (SUM1!=0 || SUM2!=0 || SUM3!=0 || C_OUT!=1) $stop;
+
+    // 111 + 111 = 1110
+    A1=1; A2=1; A3=1;
+    B1=1; B2=1; B3=1;
+    C_IN=0;
+    #10;
+    if (SUM1!=0 || SUM2!=1 || SUM3!=1 || C_OUT!=1) $stop;
+
+    $finish;
+
+end
+
+endmodule
 ```
-
-Задача 4
-
-```cpp
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-
-using namespace std;
-
-// Класс Рейс (предполагаемая структура из файла Letim)
-class Flight {
-private:
-    string flightNumber;
-    string departure;
-    string destination;
-    string aircraftType;
-    int passengers;
-    
-public:
-    // Конструкторы
-    Flight() : flightNumber(""), departure(""), destination(""), aircraftType(""), passengers(0) {}
-    Flight(string fn, string dep, string dest, string at, int pass) : 
-        flightNumber(fn), departure(dep), destination(dest), aircraftType(at), passengers(pass) {}
-    
-    // Методы доступа
-    string getFlightNumber() const { return flightNumber; }
-    string getDeparture() const { return departure; }
-    string getDestination() const { return destination; }
-    string getAircraftType() const { return aircraftType; }
-    int getPassengers() const { return passengers; }
-    
-    // Метод для вывода информации
-    void display() const {
-        cout << "Рейс: " << flightNumber << ", Отправление: " << departure 
-             << ", Назначение: " << destination << ", Тип ВС: " << aircraftType 
-             << ", Пассажиры: " << passengers << endl;
-    }
-    
-    // Метод для чтения из потока
-    friend istream& operator>>(istream& is, Flight& flight) {
-        getline(is, flight.flightNumber);
-        getline(is, flight.departure);
-        getline(is, flight.destination);
-        getline(is, flight.aircraftType);
-        is >> flight.passengers;
-        is.ignore(); // игнорируем символ новой строки
-        return is;
-    }
-};
-
-// Основная программа для задачи 4
-void task4() {
-    int K;
-    cout << "Введите количество объектов K: ";
-    cin >> K;
-    cin.ignore(); // очищаем буфер после ввода числа
-    
-    vector<Flight> flights;
-    
-    // Создание K объектов (в данном случае будем читать из файла или вводить с клавиатуры)
-    cout << "Введите данные для " << K << " рейсов:" << endl;
-    
-    for (int i = 0; i < K; i++) {
-        Flight flight;
-        string input;
-        int passengers;
-        
-        cout << "\nРейс " << (i + 1) << ":" << endl;
-        
-        cout << "Номер рейса: ";
-        getline(cin, input);
-        // Здесь должен быть сеттер или прямое присваивание
-        
-        cout << "Пункт отправления: ";
-        getline(cin, input);
-        
-        cout << "Пункт назначения: ";
-        getline(cin, input);
-        
-        cout << "Тип воздушного судна: ";
-        getline(cin, input);
-        
-        cout << "Количество пассажиров: ";
-        cin >> passengers;
-        cin.ignore();
-        
-        // Создаем объект с введенными данными
-        // В реальной программе здесь будут сеттеры
-        flights.push_back(Flight("SU" + to_string(1000 + i), 
-                                "Москва", 
-                                "Санкт-Петербург", 
-                                "Boeing 737", 
-                                passengers));
-    }
-    
-    // Вывод результатов
-    cout << "\nСозданные рейсы:" << endl;
-    for (const auto& flight : flights) {
-        flight.display();
-    }
-}
-```
-
-Главная программа
-
-```cpp
-int main() {
-    int choice;
-    
-    do {
-        cout << "\n=== МЕНЮ ===" << endl;
-        cout << "1. Задача 3 (Аэропорты)" << endl;
-        cout << "2. Задача 4 (Рейсы)" << endl;
-        cout << "0. Выход" << endl;
-        cout << "Выберите задачу: ";
-        cin >> choice;
-        cin.ignore();
-        
-        switch (choice) {
-            case 1:
-                task3();
-                break;
-            case 2:
-                task4();
-                break;
-            case 0:
-                cout << "Выход из программы." << endl;
-                break;
-            default:
-                cout << "Неверный выбор!" << endl;
-        }
-    } while (choice != 0);
-    
-    return 0;
-}
-```
-
-Вспомогательный файл для тестирования
-
-Создайте файл порт.txt с содержимым типа:
-
-```
-Шереметьево
-Москва
-международный
-30000000
-Домодедово
-Москва
-международный
-25000000
-Внуково
-Москва
-внутренний
-15000000
-Пулково
-Санкт-Петербург
-международный
-18000000
-```
-
-Особенности реализации:
-
-1. Задача 3:
-   · Чтение объектов из файла
-   · Фильтрация международных аэропортов
-   · Использование контейнера list
-2. Задача 4:
-   · Создание объектов класса Рейс
-   · Ввод данных с клавиатуры
-   · Хранение в контейнере vector
-3. Переопределенные методы:
-   · Оператор >> для чтения из потоков
-   · Методы доступа (геттеры)
-   · Методы вывода информации
-
-Программа готова к использованию и может быть адаптирована под конкретные требования классов Airport и Flight.
