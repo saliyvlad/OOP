@@ -1,15 +1,43 @@
-module encoder4_2(
-    input  logic [3:0] a,
-    output logic [1:0] y
-);
+timescale 1ns/100ps
 
-always_comb
-case (a)
-    4'b0001: y = 2'b00;
-    4'b0010: y = 2'b01;
-    4'b0100: y = 2'b10;
-    4'b1000: y = 2'b11;
-    default: y = 2'bxx;
-endcase
+module tb_encoder;
+
+logic clk, reset;
+logic [3:0] a;
+logic [1:0] y, yexpected;
+
+logic [31:0] vectornum, errors;
+logic [5:0] testvectors [100:0];
+
+encoder4_2 dut(a, y);
+
+always begin
+    clk = 1; #5; clk = 0; #5;
+end
+
+initial begin
+    $readmemb("testcase_encoder.txt", testvectors);
+    vectornum = 0;
+    errors = 0;
+    reset = 1; #27; reset = 0;
+end
+
+always @(posedge clk) begin
+    #1; {a, yexpected} = testvectors[vectornum];
+end
+
+always @(negedge clk) begin
+    if (~reset) begin
+        if (y !== yexpected) begin
+            errors = errors + 1;
+        end
+
+        vectornum = vectornum + 1;
+
+        if (testvectors[vectornum] === 6'bx) begin
+            $stop;
+        end
+    end
+end
 
 endmodule
