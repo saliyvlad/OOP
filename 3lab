@@ -1,62 +1,15 @@
-`timescale 1ns/100ps
+module encoder4_2(
+    input  logic [3:0] a,
+    output logic [1:0] y
+);
 
-module testbench_multi;
-
-logic [3:0] A, B;
-logic C_IN;
-
-logic [3:0] SUM;
-logic C_OUT;
-
-multi_adder m1(A, B, C_IN, SUM, C_OUT);
-
-initial
-begin
-
-    // 0000 + 0000 = 0000
-    A = 4'b0000; 
-    B = 4'b0000; 
-    C_IN = 0;
-    #10;
-    if (SUM != 4'b0000 || C_OUT != 0) $stop;
-
-    // 0001 + 0001 = 0010
-    A = 4'b0001; 
-    B = 4'b0001; 
-    C_IN = 0;
-    #10;
-    if (SUM != 4'b0010 || C_OUT != 0) $stop;
-
-    // 0011 + 0001 = 0100
-    A = 4'b0011; 
-    B = 4'b0001; 
-    C_IN = 0;
-    #10;
-    if (SUM != 4'b0100 || C_OUT != 0) $stop;
-
-    // 1111 + 0001 = 0000 с переносом
-    A = 4'b1111; 
-    B = 4'b0001; 
-    C_IN = 0;
-    #10;
-    if (SUM != 4'b0000 || C_OUT != 1) $stop;
-
-    // 1111 + 1111 = 1110 с переносом
-    A = 4'b1111; 
-    B = 4'b1111; 
-    C_IN = 0;
-    #10;
-    if (SUM != 4'b1110 || C_OUT != 1) $stop;
-
-    // 1010 + 0101 = 1111
-    A = 4'b1010; 
-    B = 4'b0101; 
-    C_IN = 0;
-    #10;
-    if (SUM != 4'b1111 || C_OUT != 0) $stop;
-
-    $finish;
-
-end
+always_comb
+case (a)
+    4'b0001: y = 2'b00;
+    4'b0010: y = 2'b01;
+    4'b0100: y = 2'b10;
+    4'b1000: y = 2'b11;
+    default: y = 2'bxx;
+endcase
 
 endmodule
