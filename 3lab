@@ -1,19 +1,46 @@
-module mux4_8bit(
-    input  logic [7:0] D0,
-    input  logic [7:0] D1,
-    input  logic [7:0] D2,
-    input  logic [7:0] D3,
-    input  logic [1:0] SEL,
-    output logic [7:0] OUT
-);
+timescale 1ns/100ps
 
-always_comb
-case (SEL)
-    2'b00: OUT = D0;
-    2'b01: OUT = D1;
-    2'b10: OUT = D2;
-    2'b11: OUT = D3;
-    default: OUT = 8'bxx;
-endcase
+module tb_mux4_8bit;
+
+logic clk, reset;
+
+logic [7:0] D0, D1, D2, D3;
+logic [1:0] SEL;
+
+logic [7:0] OUT, OUTEXPECTED;
+
+logic [31:0] vectornum, errors;
+logic [41:0] testvectors [100:0];
+
+mux4_8bit dut(D0, D1, D2, D3, SEL, OUT);
+
+always begin
+    clk = 1; #5; clk = 0; #5;
+end
+
+initial begin
+    $readmemb("testcase_mux4_8bit.txt", testvectors);
+    vectornum = 0;
+    errors = 0;
+    reset = 1; #27; reset = 0;
+end
+
+always @(posedge clk) begin
+    #1; {D0, D1, D2, D3, SEL, OUTEXPECTED} = testvectors[vectornum];
+end
+
+always @(negedge clk) begin
+    if (~reset) begin
+        if (OUT !== OUTEXPECTED) begin
+            errors = errors + 1;
+        end
+
+        vectornum = vectornum + 1;
+
+        if (testvectors[vectornum] === 42'bx) begin
+            $stop;
+        end
+    end
+end
 
 endmodule
