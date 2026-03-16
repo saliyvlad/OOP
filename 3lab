@@ -1,10 +1,46 @@
-module mux2_8bit(
-    input  logic [7:0] D0,
-    input  logic [7:0] D1,
-    input  logic       SEL,
-    output logic [7:0] OUT
-);
+timescale 1ns/100ps
 
-assign OUT = (SEL) ? D1 : D0;
+module tb_mux2_8bit;
+
+logic clk, reset;
+
+logic [7:0] D0, D1;
+logic       SEL;
+
+logic [7:0] OUT, OUTEXPECTED;
+
+logic [31:0] vectornum, errors;
+logic [24:0] testvectors [100:0];
+
+mux2_8bit dut(D0, D1, SEL, OUT);
+
+always begin
+    clk = 1; #5; clk = 0; #5;
+end
+
+initial begin
+    $readmemb("testcase_mux2_8bit.txt", testvectors);
+    vectornum = 0;
+    errors = 0;
+    reset = 1; #27; reset = 0;
+end
+
+always @(posedge clk) begin
+    #1; {D0, D1, SEL, OUTEXPECTED} = testvectors[vectornum];
+end
+
+always @(negedge clk) begin
+    if (~reset) begin
+        if (OUT !== OUTEXPECTED) begin
+            errors = errors + 1;
+        end
+
+        vectornum = vectornum + 1;
+
+        if (testvectors[vectornum] === 25'bx) begin
+            $stop;
+        end
+    end
+end
 
 endmodule
