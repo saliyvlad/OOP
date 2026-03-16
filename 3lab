@@ -1,10 +1,43 @@
-module mux2_1bit(
-    input  logic d0,
-    input  logic d1,
-    input  logic sel,
-    output logic out
-);
+timescale 1ns/100ps
 
-assign out = (sel) ? d1 : d0;
+module tb_mux1;
+
+logic clk, reset;
+logic d0, d1, sel;
+logic out, outexpected;
+
+logic [31:0] vectornum, errors;
+logic [3:0] testvectors [100:0];
+
+mux2_1bit dut(d0, d1, sel, out);
+
+always begin
+    clk = 1; #5; clk = 0; #5;
+end
+
+initial begin
+    $readmemb("testcase_mux1.txt", testvectors);
+    vectornum = 0;
+    errors = 0;
+    reset = 1; #27; reset = 0;
+end
+
+always @(posedge clk) begin
+    #1; {d0, d1, sel, outexpected} = testvectors[vectornum];
+end
+
+always @(negedge clk) begin
+    if (~reset) begin
+        if (out !== outexpected) begin
+            errors = errors + 1;
+        end
+
+        vectornum = vectornum + 1;
+
+        if (testvectors[vectornum] === 4'bx) begin
+            $stop;
+        end
+    end
+end
 
 endmodule
